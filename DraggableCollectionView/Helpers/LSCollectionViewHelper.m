@@ -30,7 +30,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
 @interface LSCollectionViewHelper ()
 {
     NSIndexPath *lastIndexPath;
-    UIImageView *mockCell;
+    UIView *mockCell;
     CGPoint mockCenter;
     CGPoint fingerTranslation;
     CADisplayLink *timer;
@@ -257,8 +257,17 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
             UICollectionViewCell *cell = [self.collectionView cellForItemAtIndexPath:indexPath];
             cell.highlighted = NO;
             [mockCell removeFromSuperview];
-            mockCell = [[UIImageView alloc] initWithFrame:cell.frame];
-            mockCell.image = [self imageFromCell:cell];
+            if([self.collectionView.dataSource respondsToSelector:@selector(collectionView:viewForDraggingAtIndexPath:)])
+            {
+                mockCell = [(id<UICollectionViewDataSource_Draggable>)self.collectionView.dataSource
+                            collectionView:self.collectionView viewForDraggingAtIndexPath:indexPath];
+                mockCell.center = cell.center;
+            }
+            else
+            {
+                mockCell = [[UIImageView alloc] initWithFrame:cell.frame];
+                ((UIImageView *)mockCell).image = [self imageFromCell:cell];
+            }
             mockCenter = mockCell.center;
             // Adding the mock cell to the root window so that if the collection view is not full screen,
             // it is not clipped by the collection view when dragging.
@@ -266,12 +275,24 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
             
             mockCell.center = [self convertPointToRootView:mockCenter];
             
-            [UIView
-             animateWithDuration:0.3
-             animations:^{
-                 mockCell.transform = CGAffineTransformMakeScale(1.1f, 1.1f);
-             }
-             completion:nil];
+            if([mockCell isKindOfClass:[UIImageView class]])
+            {
+                [UIView
+                 animateWithDuration:0.3
+                 animations:^{
+                     mockCell.transform = CGAffineTransformMakeScale(1.1f, 1.1f);
+                 }
+                 completion:nil];
+            }
+            else
+            {
+                mockCell.transform = CGAffineTransformMakeScale((cell.bounds.size.width/mockCell.bounds.size.width),
+                                                                (cell.bounds.size.height/mockCell.bounds.size.height));
+                [UIView animateWithDuration:0.3f
+                                 animations:^{
+                    mockCell.transform = CGAffineTransformIdentity;
+                }];
+            }
             
             // Start warping
             lastIndexPath = indexPath;
@@ -303,7 +324,18 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
              animateWithDuration:0.3
              animations:^{
                  mockCell.center = [self convertPointToRootView:layoutAttributes.center];
-                 mockCell.transform = CGAffineTransformMakeScale(1.f, 1.f);
+
+                 CGAffineTransform transform = CGAffineTransformIdentity;
+                 if([mockCell isKindOfClass:[UIImageView class]])
+                 {
+                     transform = CGAffineTransformMakeScale(1.f, 1.f);
+                 }
+                 else
+                 {
+                     transform = CGAffineTransformMakeScale((layoutAttributes.frame.size.width/mockCell.bounds.size.width),
+                                                            (layoutAttributes.frame.size.height/mockCell.bounds.size.height));
+                 }
+                 mockCell.transform = transform;
              }
              completion:^(BOOL finished) {
                  [mockCell removeFromSuperview];

@@ -76,4 +76,17 @@
     [data2 insertObject:index atIndex:toIndexPath.item];
 }
 
+- (UIView *)collectionView:(UICollectionView *)collectionView viewForDraggingAtIndexPath:(NSIndexPath *)indexPath
+{
+    NSMutableArray *data = [sections objectAtIndex:indexPath.section];
+    NSString *text = [data objectAtIndex:indexPath.item];
+    
+    UILabel *draggingView = [[UILabel alloc] initWithFrame:CGRectMake(0.0f, 0.0f, 200.0f, 200.0f)];
+    draggingView.backgroundColor = [UIColor lightGrayColor];
+    draggingView.font = [draggingView.font fontWithSize:draggingView.font.pointSize + 16.0f];
+    draggingView.textAlignment = NSTextAlignmentCenter;
+    draggingView.text = text;
+    return draggingView;
+}
+
 @end

@@ -18,4 +18,9 @@
 
 - (BOOL)collectionView:(UICollectionView *)collectionView canMoveItemAtIndexPath:(NSIndexPath *)indexPath toIndexPath:(NSIndexPath *)toIndexPath;
 
+// When dragging by default a cell copy (image) is created and tranform is applied.
+// If you think the image looks blur when transform is applied, you can provide your own view by invoking this method.
+// This method assumes that your view big enough so no transform is applied. 
+- (UIView *)collectionView:(UICollectionView *)collectionView viewForDraggingAtIndexPath:(NSIndexPath *)indexPath;
+
 @end
