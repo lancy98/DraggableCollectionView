@@ -209,6 +209,29 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     return indexPath;
 }
 
+- (NSIndexPath *)indexPathForItemAtPoint:(CGPoint)point
+{
+    NSArray *layoutAttrsInRect;
+    NSIndexPath *indexPath;
+    NSIndexPath *toIndexPath = self.layoutHelper.toIndexPath;
+    
+    // We need original positions of cells
+    self.layoutHelper.toIndexPath = nil;
+    layoutAttrsInRect = [self.collectionView.collectionViewLayout layoutAttributesForElementsInRect:self.collectionView.bounds];
+    self.layoutHelper.toIndexPath = toIndexPath;
+    
+    // What cell are we closest to?
+    for (UICollectionViewLayoutAttributes *layoutAttr in layoutAttrsInRect)
+    {
+        if (CGRectContainsPoint(layoutAttr.frame, point))
+        {
+            indexPath = layoutAttr.indexPath;
+        }
+    }
+    
+    return indexPath;
+}
+
 - (void)handleLongPressGesture:(UILongPressGestureRecognizer *)sender
 {
     if (sender.state == UIGestureRecognizerStateChanged) {
@@ -218,7 +241,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
         return;
     }
     
-    NSIndexPath *indexPath = [self indexPathForItemClosestToPoint:[sender locationInView:self.collectionView]];
+    NSIndexPath *indexPath = [self indexPathForItemAtPoint:[sender locationInView:self.collectionView]];
     
     switch (sender.state) {
         case UIGestureRecognizerStateBegan: {
