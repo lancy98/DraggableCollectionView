@@ -260,7 +260,12 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
             mockCell = [[UIImageView alloc] initWithFrame:cell.frame];
             mockCell.image = [self imageFromCell:cell];
             mockCenter = mockCell.center;
-            [self.collectionView addSubview:mockCell];
+            // Adding the mock cell to the root window so that if the collection view is not full screen,
+            // it is not clipped by the collection view when dragging.
+            [[self rootView] addSubview:mockCell];
+            
+            mockCell.center = [self convertPointToRootView:mockCenter];
+            
             [UIView
              animateWithDuration:0.3
              animations:^{
@@ -297,7 +302,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
             [UIView
              animateWithDuration:0.3
              animations:^{
-                 mockCell.center = layoutAttributes.center;
+                 mockCell.center = [self convertPointToRootView:layoutAttributes.center];
                  mockCell.transform = CGAffineTransformMakeScale(1.f, 1.f);
              }
              completion:^(BOOL finished) {
@@ -340,17 +345,18 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     if(sender.state == UIGestureRecognizerStateChanged) {
         // Move mock to match finger
         fingerTranslation = [sender translationInView:self.collectionView];
-        mockCell.center = _CGPointAdd(mockCenter, fingerTranslation);
+        CGPoint center = _CGPointAdd(mockCenter, fingerTranslation);
+        mockCell.center = [self convertPointToRootView:center];
         
         // Scroll when necessary
         if (canScroll) {
             UICollectionViewFlowLayout *scrollLayout = (UICollectionViewFlowLayout*)self.collectionView.collectionViewLayout;
             if([scrollLayout scrollDirection] == UICollectionViewScrollDirectionVertical) {
-                if (mockCell.center.y < (CGRectGetMinY(self.collectionView.bounds) + self.scrollingEdgeInsets.top)) {
+                if (center.y < (CGRectGetMinY(self.collectionView.bounds) + self.scrollingEdgeInsets.top)) {
                     [self setupScrollTimerInDirection:_ScrollingDirectionUp];
                 }
                 else {
-                    if (mockCell.center.y > (CGRectGetMaxY(self.collectionView.bounds) - self.scrollingEdgeInsets.bottom)) {
+                    if (center.y > (CGRectGetMaxY(self.collectionView.bounds) - self.scrollingEdgeInsets.bottom)) {
                         [self setupScrollTimerInDirection:_ScrollingDirectionDown];
                     }
                     else {
@@ -359,10 +365,10 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
                 }
             }
             else {
-                if (mockCell.center.x < (CGRectGetMinX(self.collectionView.bounds) + self.scrollingEdgeInsets.left)) {
+                if (center.x < (CGRectGetMinX(self.collectionView.bounds) + self.scrollingEdgeInsets.left)) {
                     [self setupScrollTimerInDirection:_ScrollingDirectionLeft];
                 } else {
-                    if (mockCell.center.x > (CGRectGetMaxX(self.collectionView.bounds) - self.scrollingEdgeInsets.right)) {
+                    if (center.x > (CGRectGetMaxX(self.collectionView.bounds) - self.scrollingEdgeInsets.right)) {
                         [self setupScrollTimerInDirection:_ScrollingDirectionRight];
                     } else {
                         [self invalidatesScrollTimer];
@@ -427,12 +433,28 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     }
     
     mockCenter  = _CGPointAdd(mockCenter, translation);
-    mockCell.center = _CGPointAdd(mockCenter, fingerTranslation);
+    CGPoint center = _CGPointAdd(mockCenter, fingerTranslation);
     self.collectionView.contentOffset = _CGPointAdd(contentOffset, translation);
     
     // Warp items while scrolling
-    NSIndexPath *indexPath = [self indexPathForItemClosestToPoint:mockCell.center];
+    NSIndexPath *indexPath = [self indexPathForItemClosestToPoint:center];
     [self warpToIndexPath:indexPath];
+}
+
+- (CGPoint)convertPointToRootView:(CGPoint)point
+{
+    return [self.collectionView convertPoint:point toView:[self rootView]];
+}
+
+- (CGPoint)convertPointFromRootView:(CGPoint)point
+{
+    return [self.collectionView convertPoint:point fromView:[self rootView]];
+}
+
+- (UIView *)rootView
+{
+    UIWindow *window = [[UIApplication sharedApplication] keyWindow];
+    return window.subviews[0];
 }
 
 @end
